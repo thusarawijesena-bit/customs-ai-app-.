@@ -35,7 +35,7 @@ st.sidebar.markdown("### ⚙️ සැකසුම්")
 # Streamlit Secrets වලින් යතුර ගන්න විදිහ
 api_key = st.secrets["GEMINI_API_KEY"]
 if api_key:
-genai.configure(api_key=api_key)
+    genai.configure(api_key=api_key)
 
 st.title("🇱🇰 Customs AI Pro - Ultimate")
 st.markdown("### Powered by Gemini Structured Intelligence 🚀")
