@@ -34,43 +34,64 @@ def load_tariff_data():
 
 df = load_tariff_data()
 
-# --- 4. ප්‍රධාන අතුරු මුහුණත (UI) ---
+
+               # --- 4. ප්‍රධාන අතුරු මුහුණත (UI) - ස්මාර්ට් ක්‍රමය ---
 st.title("🇱🇰 Customs AI Pro - Ultimate")
 st.markdown("### Powered by Gemini Structured Intelligence 🚀")
 
-query = st.text_input("ඇඳුමේ නම ගහන්න (උදා: boy's casual denim trouser):")
+st.markdown("කරුණාකර භාණ්ඩයේ තොරතුරු නිවැරදිව ලබා දෙන්න:")
+
+# කොටු දෙකකට කඩලා ලස්සනට තොරතුරු අහනවා
+col1, col2 = st.columns(2)
+
+with col1:
+    item_base_name = st.text_input("භාණ්ඩයේ නම (උදා: shirt, trouser, saree):")
+    gender = st.selectbox("කාණ්ඩය (Gender):", ["Unspecified (දන්නේ නැත)", "Men's / Boys", "Women's / Girls"])
+
+with col2:
+    material = st.selectbox("අමුද්‍රව්‍ය (Material):", ["Unspecified (දන්නේ නැත)", "Cotton (කපු)", "Synthetic/Polyester", "Silk", "Wool"])
+    make_type = st.selectbox("නිෂ්පාදන ක්‍රමය (Make):", ["Unspecified (දන්නේ නැත)", "Woven (වියන ලද)", "Knitted / Crocheted (ගෙතූ)"])
 
 # --- 5. AI ගණනය කිරීම ---
 if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව ගණනය කරන්න"):
-    if query and df is not None:
+    if item_base_name and df is not None:
         with st.spinner('රේගු වාර්තාව සකස් කරමින් පවතී...'):
             try:
-                search_term = query.lower()
-                # අදාළ වචනය තියෙන පේළි තෝරාගැනීම
+                # 1. එක්සෙල් එකෙන් හොයන්නේ ප්‍රධාන නම විතරයි (උදා: shirt)
+                search_term = item_base_name.lower()
                 mask = df.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)
                 relevant_data = df[mask]
 
                 if relevant_data.empty:
                     st.warning("සමාවෙන්න, මේ භාණ්ඩයට අදාළ දත්ත එක්සෙල් ෂීට් එකේ හොයාගන්න බැරි වුණා.")
                 else:
-                    # මුල් පේළි 3 පමණක් AI එකට යැවීම (Quota බේරා ගැනීමට)
-                    data_to_send = relevant_data.head(3).to_string()
+                    # AI එකට තෝරගන්න ලේසි වෙන්න අදාළ පේළි 5ක් විතර යවනවා
+                    data_to_send = relevant_data.head(5).to_string()
 
+                    # 2. AI එකට දෙන අලුත්ම නියෝගය (Smart Prompt)
                     ai_prompt = f"""
                     You are a Sri Lanka Customs expert.
-                    Calculate the total customs duty and taxes for the following item.
-                    Item: {query}
+                    The user is asking for the customs duty for the following item:
+                    - Base Item: {item_base_name}
+                    - Gender: {gender}
+                    - Material: {material}
+                    - Make (Woven/Knitted): {make_type}
                     
-                    Here is the exactly relevant data row from the customs tariff guide:
+                    Here are the relevant data rows extracted from the customs tariff guide:
                     {data_to_send}
 
-                    Please calculate the duties and provide a highly detailed, professional breakdown in Sinhala language.
+                    Your Task:
+                    1. Analyze the provided data rows. 
+                    2. Find the row that best matches the specific Material, Make, and Gender requested by the user.
+                    3. IF the user selected "Unspecified" for some options, clearly explain to the user in the report that duties vary based on those missing details (e.g., "This is the rate for woven. If it is knitted, the rate will be...").
+                    4. Calculate the total duties based on the most accurate row.
+
+                    Provide a highly detailed, professional breakdown in Sinhala language.
                     """
 
                     model = genai.GenerativeModel('gemini-1.5-flash')
                     response = model.generate_content(ai_prompt)
 
-                    # රිපෝට් එක ලස්සන කොටුවක පෙන්නනවා
                     st.markdown(f'<div class="report-box">{response.text}</div>', unsafe_allow_html=True)
 
             except Exception as e:
@@ -78,4 +99,4 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
     elif df is None:
         st.error("දත්ත ගොනුව (Excel file) කියවීමේ ගැටලුවක් ඇත.")
     else:
-        st.warning("කරුණාකර භාණ්ඩයේ නම ඇතුළත් කරන්න.")                    
+        st.warning("කරුණාකර මුලින්ම භාණ්ඩයේ නම ඇතුළත් කරන්න.")                   
