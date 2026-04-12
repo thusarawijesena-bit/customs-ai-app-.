@@ -7,7 +7,7 @@ import json  # <-- මෙන්න මේක තමයි අඩුවෙලා 
 def load_tariff_data():
     try:
         if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව ගණනය කරන්න"):
-    if query and df is not None:
+        if query and df is not None:
         with st.spinner('රේගු වාර්තාව සකස් කරමින් පවතී...'):
             try:
                 # 1. යූසර් ගහපු නම (query) එක්සෙල් එක ඇතුළෙන් හොයනවා (Case-insensitive)
