@@ -70,7 +70,7 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                 if relevant_data.empty:
                     st.warning("සමාවෙන්න, මේ භාණ්ඩයට අදාළ දත්ත එක්සෙල් ෂීට් එකේ හොයාගන්න බැරි වුණා.")
                 else:
-                    data_to_send = relevant_data.head(5).to_string()
+                    data_to_send = relevant_data.head(50).to_string()
 
                     # 2. AI එකට දෙන අලුත්ම නියෝගය (Smart Prompt)
                     ai_prompt = f"""
