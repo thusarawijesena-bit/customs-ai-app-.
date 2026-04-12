@@ -19,7 +19,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 2. API යතුර ලබා ගැනීම ---
-api_key = st.secrets["GEMINI_API_KEY"]
+model = genai.GenerativeModel('gemini-3-flash-preview')
 if api_key:
     genai.configure(api_key=api_key)
 
