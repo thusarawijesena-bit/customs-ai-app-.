@@ -47,13 +47,15 @@ col1, col2 = st.columns(2)
 with col1:
     item_base_name = st.text_input("භාණ්ඩයේ නම (උදා: shirt, trouser, saree):")
     gender = st.selectbox("කාණ්ඩය (Gender):", ["Unspecified (දන්නේ නැත)", "Men's / Boys", "Women's / Girls"])
+    # නව කොටස: වියපු ආකාරය (Handloom / Powerloom)
+    loom_type = st.selectbox("වියපු ආකාරය (Loom Type):", ["Unspecified (දන්නේ නැත)", "Handloom (අත්යන්ත්‍ර)", "Powerloom (බලවේග යන්ත්‍ර)"])
 
 with col2:
     material = st.selectbox("අමුද්‍රව්‍ය (Material):", ["Unspecified (දන්නේ නැත)", "Cotton (කපු)", "Synthetic/Polyester", "Silk", "Wool"])
     make_type = st.selectbox("නිෂ්පාදන ක්‍රමය (Make):", ["Unspecified (දන්නේ නැත)", "Woven (වියන ලද)", "Knitted / Crocheted (ගෙතූ)"])
 
 # --- 5. AI ගණනය කිරීම ---
-if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව ගණනය කරන්න"):
+if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව ගණනය জ্ঞකරන්න"):
     if item_base_name and df is not None:
         with st.spinner('රේගු වාර්තාව සකස් කරමින් පවතී...'):
             try:
@@ -65,7 +67,6 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                 if relevant_data.empty:
                     st.warning("සමාවෙන්න, මේ භාණ්ඩයට අදාළ දත්ත එක්සෙල් ෂීට් එකේ හොයාගන්න බැරි වුණා.")
                 else:
-                    # AI එකට තෝරගන්න ලේසි වෙන්න අදාළ පේළි 5ක් විතර යවනවා
                     data_to_send = relevant_data.head(5).to_string()
 
                     # 2. AI එකට දෙන අලුත්ම නියෝගය (Smart Prompt)
@@ -76,20 +77,22 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                     - Gender: {gender}
                     - Material: {material}
                     - Make (Woven/Knitted): {make_type}
+                    - Loom Type (Handloom/Powerloom): {loom_type}
                     
                     Here are the relevant data rows extracted from the customs tariff guide:
                     {data_to_send}
 
                     Your Task:
                     1. Analyze the provided data rows. 
-                    2. Find the row that best matches the specific Material, Make, and Gender requested by the user.
-                    3. IF the user selected "Unspecified" for some options, clearly explain to the user in the report that duties vary based on those missing details (e.g., "This is the rate for woven. If it is knitted, the rate will be...").
+                    2. Find the row that best matches the specific Material, Make, Gender, and Loom Type requested by the user.
+                    3. IF the user selected "Unspecified" for some options, clearly explain to the user in the report that duties vary based on those missing details.
                     4. Calculate the total duties based on the most accurate row.
 
                     Provide a highly detailed, professional breakdown in Sinhala language.
                     """
 
-                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    # මොඩල් එකේ නම 'gemini-pro' විදිහට වෙනස් කළා (404 Error එක හදන්න)
+                    model = genai.GenerativeModel('gemini-pro')
                     response = model.generate_content(ai_prompt)
 
                     st.markdown(f'<div class="report-box">{response.text}</div>', unsafe_allow_html=True)
@@ -99,4 +102,4 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
     elif df is None:
         st.error("දත්ත ගොනුව (Excel file) කියවීමේ ගැටලුවක් ඇත.")
     else:
-        st.warning("කරුණාකර මුලින්ම භාණ්ඩයේ නම ඇතුළත් කරන්න.")                   
+        st.warning("කරුණාකර මුලින්ම භාණ්ඩයේ නම ඇතුළත් කරන්න.")           
