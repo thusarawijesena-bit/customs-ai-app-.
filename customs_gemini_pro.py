@@ -92,7 +92,7 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                     """
 
                     # මොඩල් එකේ නම 'gemini-pro' විදිහට වෙනස් කළා (404 Error එක හදන්න)
-                    model = genai.GenerativeModel('gemini-pro')
+                    model = genai.GenerativeModel('gemini-3-flash')
                     response = model.generate_content(ai_prompt)
 
                     st.markdown(f'<div class="report-box">{response.text}</div>', unsafe_allow_html=True)
