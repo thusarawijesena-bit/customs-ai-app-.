@@ -6,10 +6,49 @@ import json  # <-- මෙන්න මේක තමයි අඩුවෙලා 
 @st.cache_data
 def load_tariff_data():
     try:
-        df = pd.read_excel('tariff_62.csv.xlsx')
-        return df.to_string()
-    except Exception as e:
-        return None
+        if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව ගණනය කරන්න"):
+    if query and df is not None:
+        with st.spinner('රේගු වාර්තාව සකස් කරමින් පවතී...'):
+            try:
+                # 1. යූසර් ගහපු නම (query) එක්සෙල් එක ඇතුළෙන් හොයනවා (Case-insensitive)
+                search_term = query.lower()
+                
+                # මුළු එක්සෙල් එකම නැතුව, අදාළ වචනය තියෙන පේළි විතරක් තෝරගන්නවා
+                mask = df.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)
+                relevant_data = df[mask]
+
+                if relevant_data.empty:
+                    st.warning("සමාවෙන්න, මේ භාණ්ඩයට අදාළ දත්ත එක්සෙල් ෂීට් එකේ හොයාගන්න බැරි වුණා.")
+                else:
+                    # 2. අර හොයාගත්ත පේළිය විතරක් AI එකට යවන්න ලෑස්ති කරනවා 
+                    # (ගොඩක් තිබ්බොත් මුල් පේළි 3 විතරක් ගන්නවා ලිමිට් පනින්නේ නැති වෙන්න)
+                    data_to_send = relevant_data.head(3).to_string()
+
+                    # 3. AI එකට දෙන නියෝගය (Prompt)
+                    ai_prompt = f"""
+                    You are a Sri Lanka Customs expert.
+                    Calculate the total customs duty and taxes for the following item.
+                    Item: {query}
+                    
+                    Here is the exactly relevant data row from the customs tariff guide:
+                    {data_to_send}
+
+                    Please calculate the duties and provide a highly detailed, professional breakdown in Sinhala language.
+                    """
+
+                    # 4. AI එකෙන් උත්තරේ ගන්නවා (gemini-1.5-flash මොඩල් එක පාවිච්චි කරමු, ඒක වේගවත්)
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = model.generate_content(ai_prompt)
+
+                    # 5. රිපෝට් එක පෙන්නනවා
+                    st.markdown(response.text)
+
+            except Exception as e:
+                st.error(f"වාර්තාව සකස් කිරීමේදී ගැටලුවක් ආවා මචං: {e}")
+    elif df is None:
+        st.error("දත්ත ගොනුව (Excel file) කියවීමේ ගැටලුවක් ඇත.")
+    else:
+        st.warning("කරුණාකර භාණ්ඩයේ නම ඇතුළත් කරන්න.")
 
 # --- 1. SETUP & CONFIGURATION ---
 st.set_page_config(page_title="Customs AI Pro - Ultimate", page_icon="🇱🇰", layout="wide")
