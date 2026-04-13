@@ -22,9 +22,6 @@ st.markdown("""
 api_key = st.secrets["GEMINI_API_KEY"]
 if api_key:
     genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-3-flash-preview')
-if api_key:
-    genai.configure(api_key=api_key)
 
 # --- 3. එක්සෙල් දත්ත කියවීම ---
 @st.cache_data
@@ -37,8 +34,7 @@ def load_tariff_data():
 
 df = load_tariff_data()
 
-
-               # --- 4. ප්‍රධාන අතුරු මුහුණත (UI) - ස්මාර්ට් ක්‍රමය ---
+# --- 4. ප්‍රධාන අතුරු මුහුණත (UI) ---
 st.title("🇱🇰 Customs AI Pro - Ultimate")
 st.markdown("### Powered by Gemini Structured Intelligence 🚀")
 
@@ -58,7 +54,7 @@ with col2:
 st.markdown("---")
 st.markdown("### 🧮 බදු ගණනය කිරීම සඳහා දත්ත (Duty Calculator):")
 
-# බර සහ වටිනාකම් අහන කොටු
+# බර සහ වටිනාකම් අහන අලුත් කොටු 3
 col3, col4, col5 = st.columns(3)
 with col3:
     cif_value = st.number_input("CIF වටිනාකම (LKR):", min_value=0.0, step=1000.0)
@@ -79,17 +75,17 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                 if relevant_data.empty:
                     st.warning("සමාවෙන්න, මේ භාණ්ඩයට අදාළ දත්ත එක්සෙල් ෂීට් එකේ හොයාගන්න බැරි වුණා.")
                 else:
-                    # පේළි 50ක් යවනවා නිවැරදි HS එක තෝරගන්න ලේසි වෙන්න
                     data_to_send = relevant_data.head(50).to_string()
 
+                    # AI එකට දෙන නියෝගය (ඔයාගේ ලොජික් එක මෙතන තියෙනවා)
                     ai_prompt = f"""
-                    You are a Sri Lanka Customs expert.
+                    You are an Expert Sri Lanka Customs Officer.
                     The user is asking for the customs duty calculation for the following item:
                     - Base Item: {item_base_name}
                     - Gender: {gender}
                     - Material: {material}
-                    - Make (Woven/Knitted): {make_type}
-                    - Loom Type (Handloom/Powerloom): {loom_type}
+                    - Make: {make_type}
+                    - Loom Type: {loom_type}
                     
                     Here is the import data for calculation:
                     - CIF Value (LKR): Rs. {cif_value}
@@ -99,11 +95,20 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                     Here are the relevant data rows extracted from the customs tariff guide:
                     {data_to_send}
 
+                    CRITICAL CLASSIFICATION LOGIC FOR SAREES (HS 6211.4x):
+                    If the item is a Saree, it falls under "Women's or girls' garments, other". You MUST follow this strict hierarchy:
+                    1. Fabric Type (e.g., Cotton = 6211.42, Man-made/Synthetic = 6211.43).
+                    2. Loom Type (Handloom vs. Powerloom).
+                    3. Print/Style (Saree, printed by Batik process vs. Saree, other).
+
+                    TRANSLATION & TONE RULES:
+                    - Provide the final report in highly professional, formal Sinhala Customs terminology.
+                    - NEVER use absurd literal translations (e.g., do NOT translate "crocheted" as "කිඹුල්"). Use "ගෙතූ හෝ ගෙතුම් කටුවෙන් ගෙතූ නොවන" for "not knitted or crocheted".
+
                     Your Task:
-                    1. Find the exact matching HS Code row from the provided data based on Material, Make, Gender, and Loom Type.
-                    2. IF CIF Value, Weight, and Quantity are provided (greater than 0), accurately CALCULATE the payable duties in Sri Lankan Rupees (LKR) using the rates in the matching row (e.g., General Duty, PAL, VAT, CESS). Show the math breakdown.
-                    3. If there are Preferential Rates or Licensing requirements mentioned in the data row, highlight them clearly.
-                    4. Provide a highly detailed, professional report in Sinhala language.
+                    1. Find the exact matching HS Code row based on the strict logic above.
+                    2. Explain the classification logic briefly in the report.
+                    3. IF CIF Value, Weight, and Quantity are provided (greater than 0), accurately CALCULATE the payable duties in Sri Lankan Rupees (LKR) using the rates in the matching row. Show the math breakdown.
                     """
 
                     model = genai.GenerativeModel('gemini-2.5-flash')
@@ -116,4 +121,4 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
     elif df is None:
         st.error("දත්ත ගොනුව (Excel file) කියවීමේ ගැටලුවක් ඇත.")
     else:
-        st.warning("කරුණාකර මුලින්ම භාණ්ඩයේ නම ඇතුළත් කරන්න.")         
+        st.warning("කරුණාකර මුලින්ම භාණ්ඩයේ නම ඇතුළත් කරන්න.")
