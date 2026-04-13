@@ -54,7 +54,6 @@ with col2:
 st.markdown("---")
 st.markdown("### 🧮 බදු ගණනය කිරීම සඳහා දත්ත (Duty Calculator):")
 
-# බර සහ වටිනාකම් අහන අලුත් කොටු 3
 col3, col4, col5 = st.columns(3)
 with col3:
     cif_value = st.number_input("CIF වටිනාකම (LKR):", min_value=0.0, step=1000.0)
@@ -77,7 +76,7 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                 else:
                     data_to_send = relevant_data.head(50).to_string()
 
-                    # AI එකට දෙන නියෝගය (ඔයාගේ ලොජික් එක මෙතන තියෙනවා)
+                    # මෙතන තමයි AI එකේ මොළේට දෙන තද නියෝග ටික තියෙන්නේ
                     ai_prompt = f"""
                     You are an Expert Sri Lanka Customs Officer.
                     The user is asking for the customs duty calculation for the following item:
@@ -96,19 +95,19 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                     {data_to_send}
 
                     CRITICAL CLASSIFICATION LOGIC FOR SAREES (HS 6211.4x):
-                    If the item is a Saree, it falls under "Women's or girls' garments, other". You MUST follow this strict hierarchy:
+                    You MUST follow this strict hierarchy for Women's/girls' garments:
                     1. Fabric Type (e.g., Cotton = 6211.42, Man-made/Synthetic = 6211.43).
-                    2. Loom Type (Handloom vs. Powerloom).
-                    3. Print/Style (Saree, printed by Batik process vs. Saree, other).
+                    2. Loom Type (CRITICAL RULE: Handloom and Powerloom have DIFFERENT 8-digit codes. NEVER say there is no distinction. For Synthetic Sarees under 6211.43, Handloom is 6211.43.12. If the user selects Powerloom, you MUST classify it under "Other" which is strictly 6211.43.92).
+                    3. Print/Style (Batik vs. Other).
 
                     TRANSLATION & TONE RULES:
                     - Provide the final report in highly professional, formal Sinhala Customs terminology.
-                    - NEVER use absurd literal translations (e.g., do NOT translate "crocheted" as "කිඹුල්"). Use "ගෙතූ හෝ ගෙතුම් කටුවෙන් ගෙතූ නොවන" for "not knitted or crocheted".
+                    - NEVER use absurd literal translations like "කිඹුල්". Use "ගෙතූ හෝ ගෙතුම් කටුවෙන් ගෙතූ නොවන" for "not knitted or crocheted".
 
                     Your Task:
-                    1. Find the exact matching HS Code row based on the strict logic above.
+                    1. Find the exact matching HS Code row based on the strict logic above (e.g., Output exactly 6211.43.92 for Synthetic Powerloom Saree).
                     2. Explain the classification logic briefly in the report.
-                    3. IF CIF Value, Weight, and Quantity are provided (greater than 0), accurately CALCULATE the payable duties in Sri Lankan Rupees (LKR) using the rates in the matching row. Show the math breakdown.
+                    3. IF CIF Value, Weight, and Quantity are provided (greater than 0), accurately CALCULATE the payable duties in Sri Lankan Rupees (LKR). Show the math breakdown clearly.
                     """
 
                     model = genai.GenerativeModel('gemini-2.5-flash')
