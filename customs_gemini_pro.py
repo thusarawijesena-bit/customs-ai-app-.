@@ -24,17 +24,11 @@ api_key = st.secrets["GEMINI_API_KEY"]
 if api_key:
     genai.configure(api_key=api_key)
 
-# --- 3. එක්සෙල් දත්ත කියවීම (දැන් මුළු ෂීට් එකම මතකයේ තියාගන්නවා) ---
+# --- 3. එක්සෙල් දත්ත කියවීම ---
 @st.cache_data
 def load_tariff_data():
     try:
-        # Excel එක කියවනවා, හැබැයි HS Code කියන එක String (අකුරු) විදිහට ගන්නවා ෆිල්ටර් කරන්න ලේසි වෙන්න
-        df = pd.read_excel('tariff_62.csv.xlsx', dtype={'HS Code': str})
-        
-        # 'HS Code' Column එකේ තියෙන හිස්තැන් අයින් කරනවා
-        if 'HS Code' in df.columns:
-            df['HS Code'] = df['HS Code'].str.strip()
-        
+        df = pd.read_excel('tariff_62.csv.xlsx')
         return df
     except Exception as e:
         st.error(f"Excel ෆයිල් එක කියවීමේ දෝෂයක්: {e}")
