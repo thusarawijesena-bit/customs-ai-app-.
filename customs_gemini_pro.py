@@ -99,21 +99,17 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                 st.info(f"📌 AI විසින් හඳුනාගත් මූලික HS කේතය: **{target_hs_code}**")
 
                 # ---------------------------------------------------------
-                # පියවර 2: Python මගින් Excel එකෙන් ඒ පේළිය කපා ගැනීම (Finder)
+                # පියවර 2: Python මගින් Excel එකෙන් ඒ පේළිය කපා ගැනීම (Finder - අලුත් ක්‍රමය)
                 # ---------------------------------------------------------
-                if 'HS Code' not in df.columns:
-                    st.error("Excel ෂීට් එකේ 'HS Code' කියලා Column එකක් හොයාගන්න බෑ මචං.")
+                # Column නම් මොනවා වුණත්, මුළු ෂීට් එකෙන්ම අර ඉලක්කම් 8 තියෙන පේළිය හොයනවා
+                mask = df.astype(str).apply(lambda x: x.str.contains(target_hs_code, regex=False)).any(axis=1)
+                exact_row = df[mask]
+                
+                if exact_row.empty:
+                    st.warning(f"අයියෝ මචං, AI එකෙන් දුන්න {target_hs_code} කේතය Excel ෂීට් එකේ කොහේවත් නෑ. Excel එකේ කේතය තියෙන්නේ වෙනස් විදිහකටද බලන්න.")
                 else:
-                    # හරියටම ඒ HS එක තියෙන පේළිය ගන්නවා
-                    exact_row = df[df['HS Code'] == target_hs_code]
-                    
-                    if exact_row.empty:
-                        st.warning(f"අයියෝ මචං, AI එකෙන් දුන්න {target_hs_code} කේතය Excel ෂීට් එකේ නෑ. ඒක නිසා ගණන් හදන්න බෑ.")
-                    else:
-                        # ඒ පේළිය AI එකට කියවන්න පුළුවන් විදිහට හදාගන්නවා
-                        row_data_string = exact_row.to_string(index=False)
-                        
-                        # ---------------------------------------------------------
+                    # ඒ පේළිය AI එකට කියවන්න පුළුවන් විදිහට හදාගන්නවා
+                    row_data_string = exact_row.to_string(index=False)
                         # පියවර 3: AI එක ලවා ගණනය කිරීම සහ රිපෝට් එක හැදීම (Calculator)
                         # ---------------------------------------------------------
                         report_prompt = f"""
