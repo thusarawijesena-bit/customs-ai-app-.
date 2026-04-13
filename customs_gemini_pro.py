@@ -129,8 +129,8 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                         3. Use standard customs terminology. Do not translate 'Crocheted' to 'කිඹුල්' (use ගෙතූ).
                         """
                         
-                        final_response = model.generate_content(report_prompt)
-                        st.markdown(f'<div class="report-box">{final_response.text}</div>', unsafe_allow_html=True)
+                final_response = model.generate_content(report_prompt)
+                st.markdown(f'<div class="report-box">{final_response.text}</div>', unsafe_allow_html=True)
 
             except Exception as e:
                 st.error(f"වාර්තාව සකස් කිරීමේදී ගැටලුවක් ආවා මචං: {e}")
