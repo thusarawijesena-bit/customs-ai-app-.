@@ -69,33 +69,17 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
         with st.spinner('රේගු කේතය සහ බදු මුදල් සකස් කරමින් පවතී...'):
             try:
                 # ---------------------------------------------------------
-                # පියවර 1: AI එක ලවා හරියටම HS Code එක හොයාගැනීම (Classifier)
+                # පියවර 2: Python මගින් Excel එකෙන් ඒ පේළිය කපා ගැනීම (Finder - අලුත් ක්‍රමය)
                 # ---------------------------------------------------------
-                model = genai.GenerativeModel('gemini-2.5-flash')
+                # Column නම් මොනවා වුණත්, මුළු ෂීට් එකෙන්ම අර ඉලක්කම් 8 තියෙන පේළිය හොයනවා
+                mask = df.astype(str).apply(lambda x: x.str.contains(target_hs_code, regex=False)).any(axis=1)
+                exact_row = df[mask]
                 
-                # Excel දත්ත යවන්නේ නෑ, ලොජික් එක විතරයි යවන්නේ
-                classifier_prompt = f"""
-                You are a strict Sri Lanka Customs HS Classification Engine. 
-                Your ONLY job is to output the correct 8-digit HS code (e.g., 6211.43.92) for the following item based on Sri Lanka Tariff Chapter 62.
-                
-                Item: {item_base_name}
-                Gender: {gender}
-                Material: {material}
-                Make: {make_type}
-                Loom Type: {loom_type}
-
-                CRITICAL LOGIC FOR SAREES:
-                - Cotton (Handloom) = 6211.42.12
-                - Cotton (Powerloom / Other) = 6211.42.92
-                - Synthetic (Handloom) = 6211.43.12
-                - Synthetic (Powerloom / Other) = 6211.43.92
-                
-                OUTPUT FORMAT: Return ONLY the 8-digit code. No extra text, no spaces. Example: 6211.43.92
-                """
-                
-                hs_response = model.generate_content(classifier_prompt)
-                target_hs_code = hs_response.text.strip()
-                
+                if exact_row.empty:
+                    st.warning(f"අයියෝ මචං, AI එකෙන් දුන්න {target_hs_code} කේතය Excel ෂීට් එකේ කොහේවත් නෑ. Excel එකේ කේතය තියෙන්නේ වෙනස් විදිහකටද බලන්න.")
+                else:
+                    # ඒ පේළිය AI එකට කියවන්න පුළුවන් විදිහට හදාගන්නවා
+                    row_data_string = exact_row.to_string(index=False)                
                 st.info(f"📌 AI විසින් හඳුනාගත් මූලික HS කේතය: **{target_hs_code}**")
 
                 # ---------------------------------------------------------
