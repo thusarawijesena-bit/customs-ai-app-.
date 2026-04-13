@@ -110,8 +110,8 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                 else:
                     # ඒ පේළිය AI එකට කියවන්න පුළුවන් විදිහට හදාගන්නවා
                     row_data_string = exact_row.to_string(index=False)
-                        # පියවර 3: AI එක ලවා ගණනය කිරීම සහ රිපෝට් එක හැදීම (Calculator)
-                        # ---------------------------------------------------------
+                # පියවර 3: AI එක ලවා ගණනය කිරීම සහ රිපෝට් එක හැදීම (Calculator)
+                # ---------------------------------------------------------
                         report_prompt = f"""
                         You are an Expert Sri Lanka Customs Officer.
                         
