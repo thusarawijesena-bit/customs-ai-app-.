@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import pandas as pd
+import json
 
 # --- 1. පිටුවේ පෙනුම සහ ඩිසයින් ---
 st.set_page_config(page_title="Customs AI Pro - Ultimate", page_icon="🇱🇰", layout="wide")
@@ -23,13 +24,20 @@ api_key = st.secrets["GEMINI_API_KEY"]
 if api_key:
     genai.configure(api_key=api_key)
 
-# --- 3. එක්සෙල් දත්ත කියවීම ---
+# --- 3. එක්සෙල් දත්ත කියවීම (දැන් මුළු ෂීට් එකම මතකයේ තියාගන්නවා) ---
 @st.cache_data
 def load_tariff_data():
     try:
-        df = pd.read_excel('tariff_62.csv.xlsx')
+        # Excel එක කියවනවා, හැබැයි HS Code කියන එක String (අකුරු) විදිහට ගන්නවා ෆිල්ටර් කරන්න ලේසි වෙන්න
+        df = pd.read_excel('tariff_62.csv.xlsx', dtype={'HS Code': str})
+        
+        # 'HS Code' Column එකේ තියෙන හිස්තැන් අයින් කරනවා
+        if 'HS Code' in df.columns:
+            df['HS Code'] = df['HS Code'].str.strip()
+        
         return df
     except Exception as e:
+        st.error(f"Excel ෆයිල් එක කියවීමේ දෝෂයක්: {e}")
         return None
 
 df = load_tariff_data()
@@ -40,7 +48,6 @@ st.markdown("### Powered by Gemini Structured Intelligence 🚀")
 
 st.markdown("කරුණාකර භාණ්ඩයේ තොරතුරු නිවැරදිව ලබා දෙන්න:")
 
-# විස්තර අහන කොටු
 col1, col2 = st.columns(2)
 with col1:
     item_base_name = st.text_input("භාණ්ඩයේ නම (උදා: shirt, trouser, saree):")
@@ -62,58 +69,78 @@ with col4:
 with col5:
     quantity = st.number_input("ඒකක ගණන - Quantity:", min_value=0, step=1)
 
-# --- 5. AI ගණනය කිරීම ---
+# --- 5. AI Chaining (පියවරෙන් පියවර ගණනය කිරීම) ---
 if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව සහ බදු ගණනය කරන්න"):
     if item_base_name and df is not None:
-        with st.spinner('රේගු වාර්තාව සහ බදු මුදල් සකස් කරමින් පවතී...'):
+        with st.spinner('රේගු කේතය සහ බදු මුදල් සකස් කරමින් පවතී...'):
             try:
-                search_term = item_base_name.lower()
-                mask = df.astype(str).apply(lambda x: x.str.contains(search_term, case=False)).any(axis=1)
-                relevant_data = df[mask]
+                # ---------------------------------------------------------
+                # පියවර 1: AI එක ලවා හරියටම HS Code එක හොයාගැනීම (Classifier)
+                # ---------------------------------------------------------
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                
+                # Excel දත්ත යවන්නේ නෑ, ලොජික් එක විතරයි යවන්නේ
+                classifier_prompt = f"""
+                You are a strict Sri Lanka Customs HS Classification Engine. 
+                Your ONLY job is to output the correct 8-digit HS code (e.g., 6211.43.92) for the following item based on Sri Lanka Tariff Chapter 62.
+                
+                Item: {item_base_name}
+                Gender: {gender}
+                Material: {material}
+                Make: {make_type}
+                Loom Type: {loom_type}
 
-                if relevant_data.empty:
-                    st.warning("සමාවෙන්න, මේ භාණ්ඩයට අදාළ දත්ත එක්සෙල් ෂීට් එකේ හොයාගන්න බැරි වුණා.")
+                CRITICAL LOGIC FOR SAREES:
+                - Cotton (Handloom) = 6211.42.12
+                - Cotton (Powerloom / Other) = 6211.42.92
+                - Synthetic (Handloom) = 6211.43.12
+                - Synthetic (Powerloom / Other) = 6211.43.92
+                
+                OUTPUT FORMAT: Return ONLY the 8-digit code. No extra text, no spaces. Example: 6211.43.92
+                """
+                
+                hs_response = model.generate_content(classifier_prompt)
+                target_hs_code = hs_response.text.strip()
+                
+                st.info(f"📌 AI විසින් හඳුනාගත් මූලික HS කේතය: **{target_hs_code}**")
+
+                # ---------------------------------------------------------
+                # පියවර 2: Python මගින් Excel එකෙන් ඒ පේළිය කපා ගැනීම (Finder)
+                # ---------------------------------------------------------
+                if 'HS Code' not in df.columns:
+                    st.error("Excel ෂීට් එකේ 'HS Code' කියලා Column එකක් හොයාගන්න බෑ මචං.")
                 else:
-                    data_to_send = relevant_data.head(50).to_string()
-
-                    # මෙතන තමයි AI එකේ මොළේට දෙන තද නියෝග ටික තියෙන්නේ
-                    ai_prompt = f"""
-                    You are an Expert Sri Lanka Customs Officer.
-                    The user is asking for the customs duty calculation for the following item:
-                    - Base Item: {item_base_name}
-                    - Gender: {gender}
-                    - Material: {material}
-                    - Make: {make_type}
-                    - Loom Type: {loom_type}
+                    # හරියටම ඒ HS එක තියෙන පේළිය ගන්නවා
+                    exact_row = df[df['HS Code'] == target_hs_code]
                     
-                    Here is the import data for calculation:
-                    - CIF Value (LKR): Rs. {cif_value}
-                    - Net Weight: {net_weight} kg
-                    - Quantity: {quantity} units
+                    if exact_row.empty:
+                        st.warning(f"අයියෝ මචං, AI එකෙන් දුන්න {target_hs_code} කේතය Excel ෂීට් එකේ නෑ. ඒක නිසා ගණන් හදන්න බෑ.")
+                    else:
+                        # ඒ පේළිය AI එකට කියවන්න පුළුවන් විදිහට හදාගන්නවා
+                        row_data_string = exact_row.to_string(index=False)
+                        
+                        # ---------------------------------------------------------
+                        # පියවර 3: AI එක ලවා ගණනය කිරීම සහ රිපෝට් එක හැදීම (Calculator)
+                        # ---------------------------------------------------------
+                        report_prompt = f"""
+                        You are an Expert Sri Lanka Customs Officer.
+                        
+                        Here is the exact matched tariff data row from the Excel sheet for HS Code {target_hs_code}:
+                        {row_data_string}
 
-                    Here are the relevant data rows extracted from the customs tariff guide:
-                    {data_to_send}
+                        Import Data:
+                        - CIF: Rs. {cif_value}
+                        - Weight: {net_weight} kg
+                        - Quantity: {quantity} units
 
-                    CRITICAL CLASSIFICATION LOGIC FOR SAREES (HS 6211.4x):
-                    You MUST follow this strict hierarchy for Women's/girls' garments:
-                    1. Fabric Type (e.g., Cotton = 6211.42, Man-made/Synthetic = 6211.43).
-                    2. Loom Type (CRITICAL RULE: Handloom and Powerloom have DIFFERENT 8-digit codes. NEVER say there is no distinction. For Synthetic Sarees under 6211.43, Handloom is 6211.43.12. If the user selects Powerloom, you MUST classify it under "Other" which is strictly 6211.43.92).
-                    3. Print/Style (Batik vs. Other).
-
-                    TRANSLATION & TONE RULES:
-                    - Provide the final report in highly professional, formal Sinhala Customs terminology.
-                    - NEVER use absurd literal translations like "කිඹුල්". Use "ගෙතූ හෝ ගෙතුම් කටුවෙන් ගෙතූ නොවන" for "not knitted or crocheted".
-
-                    Your Task:
-                    1. Find the exact matching HS Code row based on the strict logic above (e.g., Output exactly 6211.43.92 for Synthetic Powerloom Saree).
-                    2. Explain the classification logic briefly in the report.
-                    3. IF CIF Value, Weight, and Quantity are provided (greater than 0), accurately CALCULATE the payable duties in Sri Lankan Rupees (LKR). Show the math breakdown clearly.
-                    """
-
-                    model = genai.GenerativeModel('gemini-2.5-flash')
-                    response = model.generate_content(ai_prompt)
-
-                    st.markdown(f'<div class="report-box">{response.text}</div>', unsafe_allow_html=True)
+                        Your Task:
+                        1. Provide a professional Sinhala report based ONLY on this provided data row.
+                        2. If CIF, Weight, and Quantity are > 0, calculate the duties (Gen Duty, VAT, PAL, Cess, etc.) using the rates IN THIS ROW ONLY. Show the math.
+                        3. Use standard customs terminology. Do not translate 'Crocheted' to 'කිඹුල්' (use ගෙතූ).
+                        """
+                        
+                        final_response = model.generate_content(report_prompt)
+                        st.markdown(f'<div class="report-box">{final_response.text}</div>', unsafe_allow_html=True)
 
             except Exception as e:
                 st.error(f"වාර්තාව සකස් කිරීමේදී ගැටලුවක් ආවා මචං: {e}")
