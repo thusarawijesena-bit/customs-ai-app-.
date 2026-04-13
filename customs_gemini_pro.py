@@ -112,11 +112,11 @@ if st.button("🔍 සම්පූර්ණ රේගු වාර්තාව �
                     row_data_string = exact_row.to_string(index=False)
                 # පියවර 3: AI එක ලවා ගණනය කිරීම සහ රිපෝට් එක හැදීම (Calculator)
                 # ---------------------------------------------------------
-                        report_prompt = f"""
-                        You are an Expert Sri Lanka Customs Officer.
+                report_prompt = f"""
+                You are an Expert Sri Lanka Customs Officer.
                         
-                        Here is the exact matched tariff data row from the Excel sheet for HS Code {target_hs_code}:
-                        {row_data_string}
+                Here is the exact matched tariff data row from the Excel sheet for HS Code {target_hs_code}:
+                {row_data_string}
 
                         Import Data:
                         - CIF: Rs. {cif_value}
